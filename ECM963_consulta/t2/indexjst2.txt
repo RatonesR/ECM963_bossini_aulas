@@ -1,0 +1,191 @@
+const Redux = require('redux');
+const prompts = require('prompts');
+
+// Função para obter data atual
+const obterDataAtual = () => {
+  const data = new Date();
+  return {
+    dia: data.getDate(),
+    mes: data.getMonth() + 1,
+    ano: data.getFullYear(),
+  };
+};
+
+// Ação: Criar contrato
+const criarContrato = (nome, taxa) => {
+  return {
+    type: "CRIAR_CONTRATO",
+    payload: {
+      nome,
+      taxa,
+      dataCriacao: obterDataAtual(),
+    }
+  };
+};
+
+// Ação: Cancelar contrato
+const cancelarContrato = (nome) => {
+  return {
+    type: "CANCELAR_CONTRATO",
+    payload: {
+      nome,
+      dataCancelamento: obterDataAtual(),
+    }
+  };
+};
+
+// Ação: Compra de produto
+const comprarProduto = (nome, nomeProduto, valorProduto) => {
+  return {
+    type: "COMPRA_PRODUTO",
+    payload: {
+      nome,
+      nomeProduto,
+      valorProduto,
+      cashback: valorProduto * 0.10,
+    }
+  };
+};
+
+// Ação: Solicitar cashback
+const solicitarCashback = (nome, valor) => {
+  return {
+    type: "SOLICITAR_CASHBACK",
+    payload: { nome, valor }
+  };
+};
+
+// Reducer: Caixa
+const caixa = (dinheiroEmCaixa = 0, acao) => {
+  switch (acao.type) {
+    case "CANCELAR_CONTRATO":
+      const contrato = store.getState().contratos.find(c => c.nome === acao.payload.nome);
+      if (contrato) {
+        const dataCriacao = new Date(contrato.dataCriacao.ano, contrato.dataCriacao.mes - 1, contrato.dataCriacao.dia);
+        const dataCancelamento = new Date(acao.payload.dataCancelamento.ano, acao.payload.dataCancelamento.mes - 1, acao.payload.dataCancelamento.dia);
+        const diffMeses = (dataCancelamento - dataCriacao) / (1000 * 60 * 60 * 24 * 30);
+
+        if (diffMeses < 3) dinheiroEmCaixa += 100;
+      }
+      break;
+    case "COMPRA_PRODUTO":
+      dinheiroEmCaixa += acao.payload.valorProduto;
+      break;
+    case "SOLICITAR_CASHBACK":
+      if (store.getState().cashbacks[acao.payload.nome] >= acao.payload.valor) {
+        dinheiroEmCaixa -= acao.payload.valor;
+      }
+      break;
+  }
+  return dinheiroEmCaixa;
+};
+
+// Reducer: Contratos
+const contratos = (listaDeContratosAtual = [], acao) => {
+  switch (acao.type) {
+    case "CRIAR_CONTRATO":
+      return [...listaDeContratosAtual, acao.payload];
+    case "CANCELAR_CONTRATO":
+      return listaDeContratosAtual.filter(c => c.nome !== acao.payload.nome);
+    default:
+      return listaDeContratosAtual;
+  }
+};
+
+// Reducer: Histórico de pedidos de cashback
+const historicoDePedidosDeCashback = (historicoAtual = [], acao) => {
+  if (acao.type === "SOLICITAR_CASHBACK") {
+    const cashbacks = store.getState().cashbacks;
+    const status = cashbacks[acao.payload.nome] >= acao.payload.valor ? "ATENDIDO" : "NAO_ATENDIDO";
+    return [...historicoAtual, { ...acao.payload, status }];
+  }
+  return historicoAtual;
+};
+
+// Reducer: Cashback por usuário
+const cashbacks = (cashbacksAtuais = {}, acao) => {
+  switch (acao.type) {
+    case "COMPRA_PRODUTO":
+      return {
+        ...cashbacksAtuais,
+        [acao.payload.nome]: (cashbacksAtuais[acao.payload.nome] || 0) + acao.payload.cashback,
+      };
+    case "SOLICITAR_CASHBACK":
+      if (cashbacksAtuais[acao.payload.nome] >= acao.payload.valor) {
+        return {
+          ...cashbacksAtuais,
+          [acao.payload.nome]: cashbacksAtuais[acao.payload.nome] - acao.payload.valor,
+        };
+      }
+      break;
+  }
+  return cashbacksAtuais;
+};
+
+// Combina todos os reducers
+const { createStore, combineReducers } = Redux;
+const todosOsReducers = combineReducers({
+  caixa, contratos, historicoDePedidosDeCashback, cashbacks
+});
+const store = createStore(todosOsReducers);
+
+// Função para mostrar o menu
+const mostrarMenu = async () => {
+  let opcao = -1;
+  while (opcao !== 0) {
+    const response = await prompts({
+      type: 'number',
+      name: 'value',
+      message: `
+        Escolha uma opção:
+        1. Realizar novo contrato
+        2. Cancelar contrato existente
+        3. Consultar saldo de cashback
+        4. Fazer pedido de cashback
+        5. Exibir saldo em caixa
+        0. Sair
+      `,
+    });
+
+    opcao = response.value;
+    switch (opcao) {
+      case 1:
+        const contrato = await prompts([
+          { type: 'text', name: 'nome', message: 'Nome do cliente' },
+          { type: 'number', name: 'taxa', message: 'Valor da taxa do contrato' },
+        ]);
+        store.dispatch(criarContrato(contrato.nome, contrato.taxa));
+        console.log('Contrato criado com sucesso!');
+        break;
+      case 2:
+        const cancelamento = await prompts({ type: 'text', name: 'nome', message: 'Nome do cliente para cancelamento' });
+        store.dispatch(cancelarContrato(cancelamento.nome));
+        console.log('Contrato cancelado com sucesso!');
+        break;
+      case 3:
+        const consultaCashback = await prompts({ type: 'text', name: 'nome', message: 'Nome do cliente para consulta de cashback' });
+        const cashback = store.getState().cashbacks[consultaCashback.nome] || 0;
+        console.log(`Saldo de cashback para ${consultaCashback.nome}: R$${cashback}`);
+        break;
+      case 4:
+        const pedidoCashback = await prompts([
+          { type: 'text', name: 'nome', message: 'Nome do cliente' },
+          { type: 'number', name: 'valor', message: 'Valor solicitado de cashback' },
+        ]);
+        store.dispatch(solicitarCashback(pedidoCashback.nome, pedidoCashback.valor));
+        console.log('Pedido de cashback registrado.');
+        break;
+      case 5:
+        console.log(`Saldo em caixa: R$${store.getState().caixa}`);
+        break;
+      case 0:
+        console.log('Saindo...');
+        break;
+      default:
+        console.log('Opção inválida!');
+    }
+  }
+};
+
+mostrarMenu();
+

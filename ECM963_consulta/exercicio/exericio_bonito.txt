@@ -1,0 +1,96 @@
+// CÓDIGO PARECIDO COM O DO BOSSINI
+
+// Ações básicas
+const criarContrato = (nome) => {
+  return {
+    type: "CRIAR_CONTRATO",
+    dados: {
+      nome,
+    },
+  };
+};
+
+const cancelarContrato = (nome) => {
+  return {
+    type: "CANCELAR_CONTRATO",
+    dados: {
+      nome,
+    },
+  };
+};
+
+const solicitarCashback = (nome, valor) => {
+  return {
+    type: "SOLICITAR_CASHBACK",
+    dados: {
+      nome,
+      valor,
+    },
+  };
+};
+
+// Reducers específicos para cada ação
+const criarContratoReducer = (state, action) => {
+  return [...state, { nome: action.dados.nome, contratoAtivo: true }];
+};
+
+const cancelarContratoReducer = (state, action) => {
+  return state.map((pessoa) =>
+    pessoa.nome === action.dados.nome
+      ? { ...pessoa, contratoAtivo: false }
+      : pessoa
+  );
+};
+
+const solicitarCashbackReducer = (state, action) => {
+  console.log(
+    `Cashback solicitado por ${action.dados.nome}: R$${action.dados.valor.toFixed(
+      2
+    )}`
+  );
+  return state;
+};
+
+// Reducer principal que delega para os reducers específicos
+const reducer = (state = [], action) => {
+  switch (action.type) {
+    case "CRIAR_CONTRATO":
+      return criarContratoReducer(state, action);
+    case "CANCELAR_CONTRATO":
+      return cancelarContratoReducer(state, action);
+    case "SOLICITAR_CASHBACK":
+      return solicitarCashbackReducer(state, action);
+    default:
+      return state;
+  }
+};
+
+// Simulando a Store Redux
+const { createStore } = require("redux");
+const store = createStore(reducer);
+
+// Função transacao
+function transacao(store) {
+  const nomes = ["Alice", "Bruno", "Carlos", "Diana"];
+
+  const mapFuncoes = {
+    0: (nome) => store.dispatch(criarContrato(nome)),
+    1: (nome) => store.dispatch(cancelarContrato(nome)),
+    2: (nome) => {
+      const valor = Math.random() * (30 - 10) + 10; // Sorteia valor entre 10 e 30
+      store.dispatch(solicitarCashback(nome, valor));
+    },
+  };
+
+  const valorAcao = Math.floor(Math.random() * 3); // Sorteia entre 0 e 2
+  const indiceNome = Math.floor(Math.random() * nomes.length); // Sorteia índice de nomes
+
+  mapFuncoes[valorAcao](nomes[indiceNome]);
+}
+
+// Chamando a função transacao a cada 5 segundos
+setInterval(() => {
+  transacao(store);
+  console.log("Estado atual da store:", store.getState());
+}, 5000);
+

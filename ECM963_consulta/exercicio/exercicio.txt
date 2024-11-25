@@ -1,0 +1,81 @@
+// CÓDIGO DIFERENTE DO BOSSINI
+
+// Simulando uma Store Redux
+const { createStore } = require("redux");
+
+// Definindo ações
+const ACTIONS = {
+  CRIAR_CONTRATO: "CRIAR_CONTRATO",
+  CANCELAR_CONTRATO: "CANCELAR_CONTRATO",
+  SOLICITAR_CASHBACK: "SOLICITAR_CASHBACK",
+};
+
+// Reducer para gerenciar o estado
+const reducer = (state = [], action) => {
+  switch (action.type) {
+    case ACTIONS.CRIAR_CONTRATO:
+      return [...state, { nome: action.payload.nome, contratoAtivo: true }];
+    case ACTIONS.CANCELAR_CONTRATO:
+      return state.map((pessoa) =>
+        pessoa.nome === action.payload.nome
+          ? { ...pessoa, contratoAtivo: false }
+          : pessoa
+      );
+    case ACTIONS.SOLICITAR_CASHBACK:
+      console.log(
+        `Solicitação de cashback: ${action.payload.nome} solicitou R$${action.payload.valor.toFixed(
+          2
+        )}`
+      );
+      return state;
+    default:
+      return state;
+  }
+};
+
+// Criando a Store Redux
+const store = createStore(reducer);
+
+// Função transacao
+function transacao(store) {
+  // Vetor de nomes
+  const nomes = ["Alice", "Bruno", "Carlos", "Diana"];
+
+  // Mapeando valores a funções
+  const mapFuncoes = {
+    0: (nome) => {
+      store.dispatch({
+        type: ACTIONS.CRIAR_CONTRATO,
+        payload: { nome },
+      });
+      console.log(`Contrato criado para ${nome}`);
+    },
+    1: (nome) => {
+      store.dispatch({
+        type: ACTIONS.CANCELAR_CONTRATO,
+        payload: { nome },
+      });
+      console.log(`Contrato cancelado para ${nome}`);
+    },
+    2: (nome) => {
+      const valor = Math.random() * (30 - 10) + 10; // Sorteia um valor entre 10 e 30
+      store.dispatch({
+        type: ACTIONS.SOLICITAR_CASHBACK,
+        payload: { nome, valor },
+      });
+    },
+  };
+
+  // Sorteando valores
+  const valorAcao = Math.floor(Math.random() * 3); // Sorteia entre 0 e 2
+  const indiceNome = Math.floor(Math.random() * nomes.length); // Sorteia índice de nomes
+
+  // Executando a função correspondente
+  mapFuncoes[valorAcao](nomes[indiceNome]);
+}
+
+// Chamando a função transacao a cada 5 segundos
+setInterval(() => {
+  transacao(store);
+  console.log("Estado atual da store:", store.getState());
+}, 5000);

@@ -1,0 +1,272 @@
+
+import { 
+
+  StyleSheet,
+
+  Text,
+
+  TextInput,
+
+  Pressable,
+
+  FlatList,
+
+  View
+
+
+
+} from 'react-native';
+
+import {
+
+  useState
+
+} from 'react'
+
+
+
+interface Carro{
+
+  id: string;
+
+  modelo: string;
+
+}
+
+
+
+export default function HomeScreen() {
+
+  const [carro, setCarro] = useState('');
+
+  const [carros, setCarros] = useState<Carro[]>([]);
+
+
+
+  const cadastrar = () => {
+
+    const novoCarro : Carro = {
+
+      id: Date.now().toString(),
+
+      modelo: carro
+
+    }
+
+
+
+    setCarros((estadoAnterior) => { 
+
+      setCarro('')
+
+      return [novoCarro, ...estadoAnterior]
+
+    })
+
+
+
+  }
+
+
+
+  const remover = (carro: Carro) => {
+
+    setCarros(
+
+      carrosAtual => carrosAtual.filter(item => item.id !== carro.id)
+
+    )
+
+  }
+
+
+
+  return (
+
+    <View style = {styles.container}>
+
+      <TextInput 
+
+        style = {styles.input}
+
+        placeholder='Digite o nome do veículo'
+
+        value={carro}
+
+        onChangeText={setCarro}
+
+      />
+
+      <Pressable
+
+        style={styles.pressable}
+
+        onPress={cadastrar}>
+
+        <Text
+
+          style={styles.pressableText}>
+
+          Salvar
+
+        </Text>
+
+      </Pressable>
+
+      <FlatList
+
+        keyExtractor={(l) => l.id}
+
+        style={styles.list} 
+
+        data={carros}
+
+        renderItem={
+
+          l => (
+
+            <View
+
+              style={styles.listItem}>
+
+              <Pressable
+
+                onPress={() => remover(l.item)}>
+
+              <Text
+
+                style={styles.listItem}>
+
+                {l.item.modelo}
+
+              </Text>
+
+              </Pressable>
+
+            </View>
+
+          )
+
+        }
+
+      />
+
+    </View>
+
+  );
+
+}
+
+
+
+const styles = StyleSheet.create({
+
+  container: {
+
+    flex: 1,
+
+    backgroundColor: '#fff',
+
+    alignItems: 'center',
+
+    justifyContent: 'center',
+
+  },
+
+  input: {
+
+    width: '80%',
+
+    borderColor: 'gray',
+
+    borderWidth: 1,
+
+    marginBottom: 10,
+
+    padding: 10,
+
+    textAlign: 'center',
+
+    borderRadius: 4
+
+  },
+
+  pressable: {
+
+    width: '80%',
+
+    backgroundColor: '#0096F3',
+
+    padding: 12,
+
+    borderRadius: 8
+
+  },
+
+  pressableText:{
+
+    color: 'white',
+
+    textAlign: 'center'
+
+  },
+
+  list: {
+
+    width: '80%',
+
+    borderColor: '#CCC',
+
+    borderWidth: 1,
+
+    marginTop: 12,
+
+    borderRadius: 4,
+
+    padding: 8
+
+  },
+
+  listItemText: {
+
+    width: '70%',
+
+    textAlign: 'center'
+
+  },
+
+  listItem: {
+
+    padding: 12,
+
+    borderBottomWidth: 1,
+
+    borderBlockColor: '#DDD',
+
+    backgroundColor: '#F0F0F0',
+
+    textAlign: 'center',
+
+    borderRadius: 4,
+
+    marginBottom: 4,
+
+    flexDirection: 'row',
+
+    alignItems: 'center'
+
+  },
+
+  listItemButtons: {
+
+    flexDirection: 'row',
+
+    justifyContent: 'space-evenly',
+
+    width: '30%'
+
+  }
+
+  });
+
+
